@@ -7,9 +7,9 @@
 - [x] Environment variables (.env)
 
 ## Database
-- [ ] Create tables (users, candidats, entreprises, compétences, challenges)
-- [ ] Relations between tables
-- [ ] Seed test data
+- [x] Create tables (users, candidats, entreprises, compétences, challenges)
+- [x] Relations between tables
+- [x] Seed test data
 
 ## Authentication
 - [ ] Register endpoint
