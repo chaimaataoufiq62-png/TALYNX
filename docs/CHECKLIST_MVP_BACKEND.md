@@ -1,4 +1,4 @@
-# SmartMatch – Backend MVP Phase 1 Checklist
+# ProMatch – Backend MVP Phase 1 Checklist
 
 ## Setup
 - [x] Express server setup
