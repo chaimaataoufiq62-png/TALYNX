@@ -5,7 +5,7 @@ exports.getProfile = async (req,res)=>{
  const userId = req.user.id;
 
  const [user] = await db.execute(
-  "SELECT id,name,email FROM utilisateur WHERE id=?",
+  "SELECT id,email FROM utilisateur WHERE id=?",
   [userId]
  );
 
