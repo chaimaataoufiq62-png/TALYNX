@@ -20,13 +20,13 @@
 
 ## Candidate features
 - [x] Candidate profile API
-- [ ] Add candidate skills
-- [ ] View matching challenges
+- [x] Add candidate skills
+- [x] View matching challenges
 
 ## Company features
-- [ ] Create challenge
-- [ ] View candidates
-- [ ] Evaluate submissions
+- [x] Create challenge
+- [x] View candidates
+- [x] Evaluate submissions
 
 ## Matching system
 - [ ] Implement matching algorithm
