@@ -5,7 +5,7 @@ module.exports = (req, res, next) => {
  const authHeader = req.headers.authorization;
 
  if (!authHeader) {
-  return res.status(401).json({ message: "Token manquant" });
+  return res.status(401).json({ message: "Token manquant ou mal formaté" });
  }
 
  const token = authHeader.split(" ")[1];
@@ -18,10 +18,9 @@ module.exports = (req, res, next) => {
 
   next();
 
- } catch {
-
-  res.status(401).json({ message: "Token invalide" });
-
- }
-
+  } catch (error) {
+    return res.status(401).json({
+      message: "Token invalide ou expiré."
+    });
+  }
 };

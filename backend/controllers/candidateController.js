@@ -1,110 +1,245 @@
 const db = require("../config/db");
 
-// Voir profil candidat
-exports.getProfile = async (req, res) => {
+exports.getCandidateProfile = async (req, res) => {
+  try {
+    const [rows] = await db.execute(
+      `
+      SELECT *
+      FROM candidat
+      WHERE utilisateur_id = ?
+      `,
+      [req.user.id]
+    );
 
- try {
+    if (rows.length === 0) {
+      return res.status(404).json({
+        message: "Profil candidat introuvable."
+      });
+    }
 
-  const userId = req.user.id;
-
-  const [user] = await db.execute(
-   "SELECT id,email FROM utilisateur WHERE id=?",
-   [userId]
-  );
-
-  res.json(user[0]);
-
- } catch (error) {
-
-  res.status(500).json({ message: "Server error" });
-
- }
-
+    return res.status(200).json(rows[0]);
+  } catch (error) {
+    console.error("Erreur getCandidateProfile :", error);
+    return res.status(500).json({
+      message: "Erreur serveur."
+    });
+  }
 };
 
+exports.updateCandidateProfile = async (req, res) => {
+  const {
+    nom,
+    prenom,
+    telephone,
+    ville,
+    dateNaissance,
+    ecole,
+    diplome,
+    specialite,
+    niveauEtude,
+    bio
+  } = req.body;
 
-// Ajouter une compétence
-exports.addSkill = async (req,res)=>{
+  try {
+    await db.execute(
+      `
+      UPDATE candidat
+      SET
+        nom = ?,
+        prenom = ?,
+        telephone = ?,
+        ville = ?,
+        dateNaissance = ?,
+        ecole = ?,
+        diplome = ?,
+        specialite = ?,
+        niveauEtude = ?,
+        bio = ?
+      WHERE utilisateur_id = ?
+      `,
+      [
+        nom || null,
+        prenom || null,
+        telephone || null,
+        ville || null,
+        dateNaissance || null,
+        ecole || null,
+        diplome || null,
+        specialite || null,
+        niveauEtude || null,
+        bio || null,
+        req.user.id
+      ]
+    );
 
- try {
+    return res.status(200).json({
+      message: "Profil candidat mis à jour avec succès."
+    });
+  } catch (error) {
+    console.error("Erreur updateCandidateProfile :", error);
+    return res.status(500).json({
+      message: "Erreur serveur."
+    });
+  }
+};
+exports.getCandidateSkills = async (req, res) => {
+  try {
+    const [candidateRows] = await db.execute(
+      "SELECT id FROM candidat WHERE utilisateur_id = ?",
+      [req.user.id]
+    );
 
-  const { skill } = req.body;
+    if (candidateRows.length === 0) {
+      return res.status(404).json({
+        message: "Candidat introuvable."
+      });
+    }
 
-  await db.execute(
-   "INSERT INTO skills (user_id,skill_name) VALUES (?,?)",
-   [req.user.id, skill]
-  );
+    const candidatId = candidateRows[0].id;
 
-  res.json({ message:"Skill added" });
+    const [skills] = await db.execute(
+      `
+      SELECT 
+        cc.id,
+        cc.competence_id,
+        c.nom AS competenceNom,
+        cc.niveau
+      FROM candidat_competence cc
+      JOIN competence c ON cc.competence_id = c.id
+      WHERE cc.candidat_id = ?
+      ORDER BY c.nom ASC
+      `,
+      [candidatId]
+    );
 
- } catch(error){
-
-  res.status(500).json({ message:"Server error" });
-
- }
-
+    return res.status(200).json(skills);
+  } catch (error) {
+    console.error("Erreur getCandidateSkills :", error);
+    return res.status(500).json({
+      message: "Erreur serveur."
+    });
+  }
 };
 
+exports.addOrUpdateCandidateSkills = async (req, res) => {
+  const { skills } = req.body;
 
-// Voir les compétences
-exports.getSkills = async (req,res)=>{
+  if (!Array.isArray(skills) || skills.length === 0) {
+    return res.status(400).json({
+      message: "La liste des compétences est invalide."
+    });
+  }
 
- try{
+  let connection;
 
-  const [skills] = await db.execute(
-   "SELECT * FROM skills WHERE user_id=?",
-   [req.user.id]
-  );
+  try {
+    const [candidateRows] = await db.execute(
+      "SELECT id FROM candidat WHERE utilisateur_id = ?",
+      [req.user.id]
+    );
 
-  res.json(skills);
+    if (candidateRows.length === 0) {
+      return res.status(404).json({
+        message: "Candidat introuvable."
+      });
+    }
 
- } catch(error){
+    const candidatId = candidateRows[0].id;
 
-  res.status(500).json({ message:"Server error" });
+    connection = await db.getConnection();
+    await connection.beginTransaction();
 
- }
+    for (const skill of skills) {
+      const competenceId = Number(skill.competence_id);
+      const niveau = Number(skill.niveau);
 
+      if (!competenceId || !niveau || niveau < 1 || niveau > 5) {
+        await connection.rollback();
+        return res.status(400).json({
+          message: "Chaque compétence doit avoir un competence_id valide et un niveau entre 1 et 5."
+        });
+      }
+
+      const [competenceRows] = await connection.execute(
+        "SELECT id FROM competence WHERE id = ?",
+        [competenceId]
+      );
+
+      if (competenceRows.length === 0) {
+        await connection.rollback();
+        return res.status(404).json({
+          message: `La compétence avec id ${competenceId} est introuvable.`
+        });
+      }
+
+      await connection.execute(
+        `
+        INSERT INTO candidat_competence (candidat_id, competence_id, niveau)
+        VALUES (?, ?, ?)
+        ON DUPLICATE KEY UPDATE niveau = VALUES(niveau)
+        `,
+        [candidatId, competenceId, niveau]
+      );
+    }
+await connection.commit();
+
+    return res.status(200).json({
+      message: "Compétences candidat enregistrées avec succès."
+    });
+  } catch (error) {
+    if (connection) {
+      await connection.rollback();
+    }
+
+    console.error("Erreur addOrUpdateCandidateSkills :", error);
+    return res.status(500).json({
+      message: "Erreur serveur."
+    });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
+  }
 };
 
+exports.deleteCandidateSkill = async (req, res) => {
+  const { competenceId } = req.params;
 
-// Supprimer une compétence
-exports.deleteSkill = async (req,res)=>{
+  try {
+    const [candidateRows] = await db.execute(
+      "SELECT id FROM candidat WHERE utilisateur_id = ?",
+      [req.user.id]
+    );
 
- try{
+    if (candidateRows.length === 0) {
+      return res.status(404).json({
+        message: "Candidat introuvable."
+      });
+    }
 
-  const skillId = req.params.id;
+    const candidatId = candidateRows[0].id;
 
-  await db.execute(
-   "DELETE FROM skills WHERE id=?",
-   [skillId]
-  );
+    const [result] = await db.execute(
+      `
+      DELETE FROM candidat_competence
+      WHERE candidat_id = ? AND competence_id = ?
+      `,
+      [candidatId, competenceId]
+    );
 
-  res.json({ message:"Skill deleted" });
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        message: "Compétence non trouvée pour ce candidat."
+      });
+    }
 
- } catch(error){
-
-  res.status(500).json({ message:"Server error" });
-
- }
-
-};
-
-
-// Voir les challenges
-exports.getChallenges = async (req,res)=>{
-
- try{
-
-  const [challenges] = await db.execute(
-   "SELECT * FROM challenges"
-  );
-
-  res.json(challenges);
-
- } catch(error){
-
-  res.status(500).json({ message:"Server error" });
-
- }
-
+    return res.status(200).json({
+      message: "Compétence supprimée avec succès."
+    });
+  } catch (error) {
+    console.error("Erreur deleteCandidateSkill :", error);
+    return res.status(500).json({
+      message: "Erreur serveur."
+    });
+  }
 };
