@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
 
 const CompanyDashboard = () => {
   const { user } = useAuth();
-  const [stats, setStats] = useState({ total_challenges: 0, total_soumissions: 0, evaluations: 0, qualifies: 0 });
+  const [stats, setStats] = useState({ totalChallenges: 0, totalSubmissions: 0, totalEvaluations: 0, totalQualified: 0 });
   const [challenges, setChallenges] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -14,7 +14,7 @@ const CompanyDashboard = () => {
     const fetchData = async () => {
       try {
         const [statsRes, challengesRes] = await Promise.all([
-          api.get('/stats'),
+          api.get('/stats/company'),
           api.get('/company/challenges'),
         ]);
         if (statsRes.data) setStats(statsRes.data);
@@ -36,10 +36,10 @@ const CompanyDashboard = () => {
   );
 
   const statCards = [
-    { icon: <Briefcase size={24} color="#4C1E95" />, label: 'Défis Actifs', value: stats.total_challenges || 0, bg: 'rgba(76,30,149,0.1)' },
-    { icon: <Users size={24} color="#2563EB" />, label: 'Soumissions Reçues', value: stats.total_soumissions || 0, bg: 'rgba(37,99,235,0.1)' },
-    { icon: <Award size={24} color="#16A34A" />, label: 'Candidats Qualifiés', value: stats.qualifies || 0, bg: 'rgba(22,163,74,0.1)' },
-    { icon: <TrendingUp size={24} color="#D97706" />, label: 'Évaluations faites', value: stats.evaluations || 0, bg: 'rgba(217,119,6,0.1)' },
+    { icon: <Briefcase size={24} color="#4C1E95" />, label: 'Défis Actifs', value: stats.totalChallenges || 0, bg: 'rgba(76,30,149,0.1)' },
+    { icon: <Users size={24} color="#2563EB" />, label: 'Soumissions Reçues', value: stats.totalSubmissions || 0, bg: 'rgba(37,99,235,0.1)' },
+    { icon: <Award size={24} color="#16A34A" />, label: 'Candidats Qualifiés', value: stats.totalQualified || 0, bg: 'rgba(22,163,74,0.1)' },
+    { icon: <TrendingUp size={24} color="#D97706" />, label: 'Évaluations faites', value: stats.totalEvaluations || 0, bg: 'rgba(217,119,6,0.1)' },
   ];
 
   return (

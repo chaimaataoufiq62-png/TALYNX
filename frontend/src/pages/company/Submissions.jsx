@@ -91,6 +91,37 @@ const EvaluationForm = ({ submission, onEvaluated }) => {
   );
 };
 
+// Backend returns flat rows with candidate and evaluation fields at top level
+// Restructure into nested objects for the UI
+const restructureSubmission = (row) => {
+  const hasEvaluation = row.note_finale !== null && row.note_finale !== undefined;
+  return {
+    id: row.id,
+    candidat_id: row.candidat_id,
+    challenge_id: row.challenge_id,
+    contenu_reponse: row.contenu_reponse,
+    fichier_reponse: row.fichier_reponse,
+    fichier_path: row.fichier_reponse,
+    lien_github: row.lien_github,
+    date_soumission: row.date_soumission,
+    statut: row.statut,
+    candidat: {
+      nom: row.nom,
+      prenom: row.prenom,
+      ville: row.ville,
+      ecole: row.ecole,
+      specialite: row.specialite,
+      niveauEtude: row.niveauEtude,
+    },
+    evaluation: hasEvaluation ? {
+      note_finale: row.note_finale,
+      commentaire: row.commentaire,
+      est_qualifie: row.est_qualifie,
+      date_evaluation: row.date_evaluation,
+    } : null,
+  };
+};
+
 const CompanySubmissions = () => {
   const [challenges, setChallenges] = useState([]);
   const [selectedChallengeId, setSelectedChallengeId] = useState('');
@@ -111,22 +142,25 @@ const CompanySubmissions = () => {
       .finally(() => setLoadingChallenges(false));
   }, []);
 
-  useEffect(() => {
+  const fetchSubmissions = () => {
     if (!selectedChallengeId) { setSubmissions([]); return; }
     setLoadingSubmissions(true);
     api.get(`/company/challenges/${selectedChallengeId}/submissions`)
-      .then(res => setSubmissions(res.data || []))
+      .then(res => {
+        // Backend returns { challenge: {...}, submissions: [...] }
+        const raw = res.data?.submissions || res.data || [];
+        setSubmissions(raw.map(restructureSubmission));
+      })
       .catch(err => console.error(err))
       .finally(() => setLoadingSubmissions(false));
+  };
+
+  useEffect(() => {
+    fetchSubmissions();
   }, [selectedChallengeId]);
 
   const handleEvaluated = () => {
-    // Refresh submissions
-    setLoadingSubmissions(true);
-    api.get(`/company/challenges/${selectedChallengeId}/submissions`)
-      .then(res => setSubmissions(res.data || []))
-      .catch(err => console.error(err))
-      .finally(() => setLoadingSubmissions(false));
+    fetchSubmissions();
     setExpandedId(null);
   };
 
@@ -236,7 +270,7 @@ const CompanySubmissions = () => {
                           </a>
                         )}
                         {sub.fichier_path && (
-                          <a href={`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/uploads/submissions/${sub.fichier_path}`} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: 'rgba(37,99,235,0.1)', color: 'var(--bleu-accent)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none', border: '1px solid rgba(37,99,235,0.2)' }}>
+                          <a href={`http://localhost:5000/uploads/submissions/${sub.fichier_path}`} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: 'rgba(37,99,235,0.1)', color: 'var(--bleu-accent)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none', border: '1px solid rgba(37,99,235,0.2)' }}>
                             <Download size={14} /> Télécharger le fichier
                           </a>
                         )}

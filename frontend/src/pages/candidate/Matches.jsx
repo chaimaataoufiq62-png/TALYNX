@@ -132,7 +132,8 @@ const CandidateMatches = () => {
   const fetchMatches = async () => {
     try {
       const res = await api.get('/candidate/matches');
-      const valid = (res.data || []).filter(m => m.score >= 30).sort((a, b) => b.score - a.score);
+      const matchData = res.data?.matches || res.data || [];
+      const valid = matchData.filter(m => m.score >= 30).sort((a, b) => b.score - a.score);
       setMatches(valid);
     } catch (err) {
       console.error('Error fetching matches', err);

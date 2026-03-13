@@ -9,6 +9,22 @@ const STATUS_CONFIG = {
   'pending': { label: 'En attente', color: '#D97706', bg: 'rgba(217,119,6,0.1)', icon: <Clock size={14} /> },
 };
 
+// Backend returns flat rows: { id, challenge_id, contenu_reponse, ..., titre, description, note_finale, commentaire, est_qualifie, date_evaluation }
+// We restructure to have a nested evaluation object for display logic
+const restructureSubmission = (row) => {
+  const hasEvaluation = row.note_finale !== null && row.note_finale !== undefined;
+  return {
+    ...row,
+    challenge: { titre: row.titre, description: row.description },
+    evaluation: hasEvaluation ? {
+      note_finale: row.note_finale,
+      commentaire: row.commentaire,
+      est_qualifie: row.est_qualifie,
+      date_evaluation: row.date_evaluation,
+    } : null,
+  };
+};
+
 const getStatus = (sub) => {
   if (!sub.evaluation) return 'pending';
   if (sub.evaluation.est_qualifie) return 'qualified';
@@ -39,7 +55,8 @@ const CandidateSubmissions = () => {
     const fetchSubmissions = async () => {
       try {
         const res = await api.get('/candidate/submissions');
-        setSubmissions(res.data || []);
+        const raw = res.data || [];
+        setSubmissions(raw.map(restructureSubmission));
       } catch (err) {
         console.error('Error fetching submissions', err);
       } finally {
@@ -53,6 +70,7 @@ const CandidateSubmissions = () => {
     <div className="page-loading">
       <div style={{ width: '36px', height: '36px', borderRadius: '50%', border: '2px solid rgba(76,30,149,0.2)', borderTopColor: 'var(--btn-primaire)', animation: 'spin 0.7s linear infinite' }} />
       <p>Chargement de vos candidatures...</p>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 
@@ -104,9 +122,9 @@ const CandidateSubmissions = () => {
                   onClick={() => setExpandedId(isExpanded ? null : sub.id)}
                 >
                   <div style={{ flex: 1, minWidth: '200px' }}>
-                    <h3 style={{ fontSize: '1rem', margin: '0 0 0.25rem', fontFamily: 'var(--font-heading)' }}>{sub.challenge?.titre || 'Défi Technique'}</h3>
+                    <h3 style={{ fontSize: '1rem', margin: '0 0 0.25rem', fontFamily: 'var(--font-heading)' }}>{sub.challenge?.titre || sub.titre || 'Défi Technique'}</h3>
                     <p style={{ color: 'var(--texte-moyen)', fontSize: '0.8rem', margin: 0 }}>
-                      {sub.entreprise?.nom || 'Entreprise'} • Soumis le {new Date(sub.date_soumission).toLocaleDateString('fr-FR')}
+                      Soumis le {new Date(sub.date_soumission).toLocaleDateString('fr-FR')}
                     </p>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>

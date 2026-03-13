@@ -12,7 +12,7 @@ const CompanyChallenges = () => {
   const [submitting, setSubmitting] = useState(false);
   const [newChallenge, setNewChallenge] = useState({
     titre: '', description: '', niveau: 'Intermédiaire',
-    date_debut: new Date().toISOString().split('T')[0], date_fin: ''
+    dateDebut: new Date().toISOString().split('T')[0], dateFin: ''
   });
 
   const fetchChallenges = async () => {
@@ -37,7 +37,7 @@ const CompanyChallenges = () => {
     try {
       await api.post('/company/challenges', newChallenge);
       setShowForm(false);
-      setNewChallenge({ titre: '', description: '', niveau: 'Intermédiaire', date_debut: new Date().toISOString().split('T')[0], date_fin: '' });
+      setNewChallenge({ titre: '', description: '', niveau: 'Intermédiaire', dateDebut: new Date().toISOString().split('T')[0], dateFin: '' });
       fetchChallenges();
     } catch {
       alert('Erreur lors de la création du défi.');
@@ -104,11 +104,11 @@ const CompanyChallenges = () => {
               </div>
               <div>
                 <label className="label">Date de début *</label>
-                <input type="date" name="date_debut" className="input-field-no-icon" value={newChallenge.date_debut} onChange={handleChange} required />
+                <input type="date" name="dateDebut" className="input-field-no-icon" value={newChallenge.dateDebut} onChange={handleChange} required />
               </div>
               <div>
                 <label className="label">Date de clôture *</label>
-                <input type="date" name="date_fin" className="input-field-no-icon" value={newChallenge.date_fin} onChange={handleChange} required />
+                <input type="date" name="dateFin" className="input-field-no-icon" value={newChallenge.dateFin} onChange={handleChange} required />
               </div>
             </div>
 
@@ -143,7 +143,7 @@ const CompanyChallenges = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {challenges.map(c => {
             const niveauColor = NIVEAU_COLORS[c.niveau] || '#4C1E95';
-            const isActive = new Date(c.date_fin) >= new Date();
+            const isActive = new Date(c.dateFin) >= new Date();
             return (
               <div key={c.id} className="card" style={{ padding: 0, overflow: 'hidden' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
@@ -158,7 +158,7 @@ const CompanyChallenges = () => {
                     </div>
                     <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.8rem', color: 'var(--texte-moyen)', flexWrap: 'wrap' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                        <Calendar size={13} /> {new Date(c.date_debut).toLocaleDateString('fr-FR')} → {new Date(c.date_fin).toLocaleDateString('fr-FR')}
+                        <Calendar size={13} /> {new Date(c.dateDebut).toLocaleDateString('fr-FR')} → {new Date(c.dateFin).toLocaleDateString('fr-FR')}
                       </span>
                     </div>
                   </div>

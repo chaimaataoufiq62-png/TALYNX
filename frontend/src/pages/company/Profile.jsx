@@ -3,7 +3,7 @@ import api from '../../services/api';
 import { Save, Globe, Phone, MapPin, Building } from 'lucide-react';
 
 const CompanyProfile = () => {
-  const [profile, setProfile] = useState({ nom: '', secteur: '', description: '', ville: '', telephone: '', site_web: '' });
+  const [profile, setProfile] = useState({ nomEntreprise: '', secteur: '', description: '', ville: '', telephone: '', siteWeb: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState('');
@@ -35,6 +35,7 @@ const CompanyProfile = () => {
   if (loading) return (
     <div className="page-loading">
       <div style={{ width: '36px', height: '36px', borderRadius: '50%', border: '2px solid rgba(76,30,149,0.2)', borderTopColor: 'var(--btn-primaire)', animation: 'spin 0.7s linear infinite' }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 
@@ -65,7 +66,7 @@ const CompanyProfile = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
                 <label className="label">Nom de l'entreprise *</label>
-                <input type="text" name="nom" className="input-field-no-icon" value={profile.nom || ''} onChange={handleChange} required placeholder="Ex: TechCorp SAS" />
+                <input type="text" name="nomEntreprise" className="input-field-no-icon" value={profile.nomEntreprise || ''} onChange={handleChange} required placeholder="Ex: TechCorp SAS" />
               </div>
               <div>
                 <label className="label">Secteur d'activité</label>
@@ -97,7 +98,7 @@ const CompanyProfile = () => {
               </div>
               <div>
                 <label className="label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Globe size={13} /> Site Web</label>
-                <input type="url" name="site_web" className="input-field-no-icon" value={profile.site_web || ''} onChange={handleChange} placeholder="https://www.votresite.com" />
+                <input type="url" name="siteWeb" className="input-field-no-icon" value={profile.siteWeb || ''} onChange={handleChange} placeholder="https://www.votresite.com" />
               </div>
             </div>
           </div>

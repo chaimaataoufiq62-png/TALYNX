@@ -20,7 +20,7 @@ const Navbar = () => {
   useEffect(() => {
     if (user) {
       api.get('/notifications/unread-count')
-        .then(res => setUnreadCount(res.data?.count || 0))
+        .then(res => setUnreadCount(res.data?.unreadCount || 0))
         .catch(() => {});
     }
   }, [user]);
@@ -60,7 +60,9 @@ const Navbar = () => {
 
   const links = user?.type === 'candidat' ? candidateLinks : companyLinks;
   const profilePath = user?.type === 'candidat' ? '/candidate/profile' : '/company/profile';
-  const displayName = user ? (user.prenom ? `${user.prenom} ${user.nom}` : user.nomEntreprise) : '';
+  const displayName = user 
+    ? (user.prenom ? `${user.prenom} ${user.nom}` : (user.nomEntreprise || user.email || 'Utilisateur')) 
+    : '';
 
   return (
     <nav style={navStyle}>
@@ -132,7 +134,7 @@ const Navbar = () => {
                   color: 'white', fontWeight: 700, fontSize: '0.8rem',
                   flexShrink: 0
                 }}>
-                  {displayName.charAt(0).toUpperCase()}
+                  {displayName ? displayName.charAt(0).toUpperCase() : '?'}
                 </div>
                 <span style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {displayName}

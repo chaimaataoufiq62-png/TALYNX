@@ -12,10 +12,6 @@ export const AuthProvider = ({ children }) => {
     const initAuth = async () => {
       if (token) {
         try {
-          // Verify token and fetch user profile based on role
-          // Assuming user info is minimal in token, we fetch full profile or at least user details
-          // Since the backend synthesis says auth/login returns { token, utilisateur: { id, type, profile } }
-          // We might need to store type in localStorage as well to know which profile to fetch if needed on reload
           const storedUser = localStorage.getItem('user');
           if (storedUser) {
              setUser(JSON.parse(storedUser));
@@ -32,12 +28,21 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     const response = await api.post('/auth/login', { email, password });
-    const { token, utilisateur } = response.data;
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(utilisateur));
-    setToken(token);
-    setUser(utilisateur);
-    return utilisateur;
+    const { token: newToken, utilisateur } = response.data;
+
+    // Flatten profile into top-level user object for easy access
+    const flatUser = {
+      id: utilisateur.id,
+      email: utilisateur.email,
+      type: utilisateur.type,
+      ...(utilisateur.profile || {}),
+    };
+
+    localStorage.setItem('token', newToken);
+    localStorage.setItem('user', JSON.stringify(flatUser));
+    setToken(newToken);
+    setUser(flatUser);
+    return flatUser;
   };
 
   const register = async (userData) => {

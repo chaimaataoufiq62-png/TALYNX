@@ -19,7 +19,7 @@ const StatCard = ({ icon, label, value, color, bgColor }) => (
 
 const CandidateDashboard = () => {
   const { user } = useAuth();
-  const [stats, setStats] = useState({ total_soumissions: 0, evaluees: 0, score_moyen: 0, qualifications: 0 });
+  const [stats, setStats] = useState({ totalSubmissions: 0, totalEvaluated: 0, averageScore: 0, qualified: 0 });
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -27,11 +27,13 @@ const CandidateDashboard = () => {
     const fetchData = async () => {
       try {
         const [statsRes, matchesRes] = await Promise.all([
-          api.get('/stats'),
+          api.get('/stats/candidate'),
           api.get('/candidate/matches'),
         ]);
         if (statsRes.data) setStats(statsRes.data);
-        const validMatches = (matchesRes.data || []).filter(m => m.score >= 30).sort((a, b) => b.score - a.score).slice(0, 3);
+        // Backend returns { matches: [...] }
+        const matchData = matchesRes.data?.matches || matchesRes.data || [];
+        const validMatches = matchData.filter(m => m.score >= 30).sort((a, b) => b.score - a.score).slice(0, 3);
         setMatches(validMatches);
       } catch (err) {
         console.error('Dashboard fetch error', err);
@@ -44,8 +46,9 @@ const CandidateDashboard = () => {
 
   if (loading) return (
     <div className="page-loading">
-      <div className="spinner" style={{ border: '2px solid rgba(76,30,149,0.2)', borderTopColor: 'var(--btn-primaire)', width: '32px', height: '32px' }} />
+      <div className="spinner" style={{ border: '2px solid rgba(76,30,149,0.2)', borderTopColor: 'var(--btn-primaire)', width: '32px', height: '32px', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
       <p>Chargement du dashboard...</p>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 
@@ -61,10 +64,10 @@ const CandidateDashboard = () => {
 
       {/* Stats Grid */}
       <div className="grid-4" style={{ marginBottom: '2.5rem' }}>
-        <StatCard icon={<FileCheck />} label="Soumissions" value={stats.total_soumissions || 0} color="#2563EB" bgColor="rgba(37,99,235,0.1)" />
-        <StatCard icon={<Award />} label="Qualifications" value={stats.qualifications || 0} color="#7C3AED" bgColor="rgba(124,58,237,0.1)" />
-        <StatCard icon={<Target />} label="Score Moyen" value={stats.score_moyen ? `${Math.round(stats.score_moyen)}%` : 'N/A'} color="#D97706" bgColor="rgba(217,119,6,0.1)" />
-        <StatCard icon={<TrendingUp />} label="Évaluées" value={stats.evaluees || 0} color="#16A34A" bgColor="rgba(22,163,74,0.1)" />
+        <StatCard icon={<FileCheck />} label="Soumissions" value={stats.totalSubmissions || 0} color="#2563EB" bgColor="rgba(37,99,235,0.1)" />
+        <StatCard icon={<Award />} label="Qualifications" value={stats.qualified || 0} color="#7C3AED" bgColor="rgba(124,58,237,0.1)" />
+        <StatCard icon={<Target />} label="Score Moyen" value={stats.averageScore ? `${Math.round(stats.averageScore)}%` : 'N/A'} color="#D97706" bgColor="rgba(217,119,6,0.1)" />
+        <StatCard icon={<TrendingUp />} label="Évaluées" value={stats.totalEvaluated || 0} color="#16A34A" bgColor="rgba(22,163,74,0.1)" />
       </div>
 
       {/* Bottom Row */}
@@ -86,14 +89,14 @@ const CandidateDashboard = () => {
                 <Briefcase size={36} style={{ marginBottom: '0.75rem', opacity: 0.3 }} />
                 <p style={{ fontSize: '0.875rem' }}>Mettez à jour votre profil pour voir vos matchs</p>
               </div>
-            ) : matches.map(m => (
-              <div key={m.id_challenge} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.85rem 1rem', borderRadius: 'var(--radius-md)', transition: 'background 0.2s' }}
+            ) : matches.map((m, idx) => (
+              <div key={m.challenge?.id || idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.85rem 1rem', borderRadius: 'var(--radius-md)', transition: 'background 0.2s' }}
                 onMouseEnter={e => e.currentTarget.style.background = '#F9FAFB'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
                 <div>
                   <p style={{ fontWeight: 600, fontSize: '0.9rem', margin: 0 }}>{m.challenge?.titre || 'Défi Technique'}</p>
-                  <p style={{ color: 'var(--texte-moyen)', fontSize: '0.8rem', margin: '0.15rem 0 0' }}>{m.entreprise?.nom || 'Entreprise'}</p>
+                  <p style={{ color: 'var(--texte-moyen)', fontSize: '0.8rem', margin: '0.15rem 0 0' }}>Score: {Math.round(m.score)}%</p>
                 </div>
                 <span className="badge badge-primary">{Math.round(m.score)}%</span>
               </div>
@@ -156,6 +159,7 @@ const CandidateDashboard = () => {
           </div>
         </div>
       </div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 };

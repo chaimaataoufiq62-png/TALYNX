@@ -18,16 +18,16 @@ const StarRating = ({ level, onChange }) => {
           onMouseLeave={() => onChange && setHovered(0)}
           style={{ background: 'none', border: 'none', padding: '2px', cursor: onChange ? 'pointer' : 'default' }}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill={i <= (hovered || level) ? 'none' : 'none'}>
+          <svg width="18" height="18" viewBox="0 0 24 24">
             <defs>
-              <linearGradient id="star-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <linearGradient id={`star-grad-${i}`} x1="0%" y1="0%" x2="100%" y2="0%">
                 <stop offset="0%" stopColor="#4C1E95" />
                 <stop offset="100%" stopColor="#2563EB" />
               </linearGradient>
             </defs>
             <polygon
               points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"
-              fill={i <= (hovered || level) ? 'url(#star-grad)' : '#E5E7EB'}
+              fill={i <= (hovered || level) ? `url(#star-grad-${i})` : '#E5E7EB'}
               stroke={i <= (hovered || level) ? 'none' : '#D1D5DB'}
               strokeWidth="1"
             />
@@ -40,7 +40,10 @@ const StarRating = ({ level, onChange }) => {
 
 const CandidateProfile = () => {
   const { user, setUser } = useAuth();
-  const [profile, setProfileData] = useState({ nom: '', prenom: '', ville: '', ecole: '', diplome: '', specialite: '', niveau_etude: '', bio: '' });
+  const [profile, setProfileData] = useState({
+    nom: '', prenom: '', telephone: '', ville: '', dateNaissance: '',
+    ecole: '', diplome: '', specialite: '', niveauEtude: '', bio: ''
+  });
   const [skills, setSkills] = useState([]);
   const [globalCompetences, setGlobalCompetences] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -60,7 +63,12 @@ const CandidateProfile = () => {
           api.get('/competences'),
         ]);
         if (resProf.data) setProfileData(prev => ({ ...prev, ...resProf.data }));
-        if (resSkills.data) setSkills(resSkills.data);
+        // Backend returns skills with competence_id and competenceNom
+        if (resSkills.data) setSkills(resSkills.data.map(s => ({
+          competence_id: s.competence_id,
+          niveau: s.niveau,
+          nom: s.competenceNom || s.nom,
+        })));
         if (resDict.data) setGlobalCompetences(resDict.data);
       } catch (err) {
         console.error('Error fetching profile data', err);
@@ -78,7 +86,9 @@ const CandidateProfile = () => {
     setSaving(true); setSuccess(''); setError('');
     try {
       await api.put('/candidate/profile', profile);
-      await api.post('/candidate/skills', { skills: skills.map(s => ({ id_competence: s.id_competence, niveau: s.niveau })) });
+      await api.post('/candidate/skills', {
+        skills: skills.map(s => ({ competence_id: s.competence_id, niveau: s.niveau }))
+      });
       setUser({ ...user, nom: profile.nom, prenom: profile.prenom });
       setSuccess('Profil mis à jour avec succès !');
       setTimeout(() => setSuccess(''), 3500);
@@ -93,24 +103,25 @@ const CandidateProfile = () => {
     if (!newSkillId) return;
     const comp = globalCompetences.find(c => c.id.toString() === newSkillId);
     if (!comp) return;
-    if (skills.find(s => s.id_competence.toString() === newSkillId)) return;
-    setSkills([...skills, { id_competence: parseInt(newSkillId), niveau: newSkillLevel, nom: comp.nom }]);
+    if (skills.find(s => s.competence_id.toString() === newSkillId)) return;
+    setSkills([...skills, { competence_id: parseInt(newSkillId), niveau: newSkillLevel, nom: comp.nom }]);
     setNewSkillId('');
     setNewSkillLevel(3);
   };
 
-  const handleUpdateLevel = (id_competence, niveau) => {
-    setSkills(skills.map(s => s.id_competence === id_competence ? { ...s, niveau } : s));
+  const handleUpdateLevel = (competence_id, niveau) => {
+    setSkills(skills.map(s => s.competence_id === competence_id ? { ...s, niveau } : s));
   };
 
-  const handleRemoveSkill = id_competence => setSkills(skills.filter(s => s.id_competence !== id_competence));
+  const handleRemoveSkill = competence_id => setSkills(skills.filter(s => s.competence_id !== competence_id));
 
-  const availableCompetences = globalCompetences.filter(c => !skills.find(s => s.id_competence === c.id));
+  const availableCompetences = globalCompetences.filter(c => !skills.find(s => s.competence_id === c.id));
 
   if (loading) return (
     <div className="page-loading">
       <div style={{ width: '36px', height: '36px', borderRadius: '50%', border: '2px solid rgba(76,30,149,0.2)', borderTopColor: 'var(--btn-primaire)', animation: 'spin 0.7s linear infinite' }} />
       <p>Chargement du profil...</p>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 
@@ -128,7 +139,7 @@ const CandidateProfile = () => {
           style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.7rem 1.5rem' }}
           disabled={saving}
         >
-          {saving ? <><span className="spinner" style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', display: 'inline-block' }} /> Sauvegarde...</> : <><Save size={16} /> Sauvegarder</>}
+          {saving ? <>Sauvegarde...</> : <><Save size={16} /> Sauvegarder</>}
         </button>
       </div>
 
@@ -188,7 +199,7 @@ const CandidateProfile = () => {
                 </div>
                 <div>
                   <label className="label">Niveau d'étude</label>
-                  <select name="niveau_etude" className="input-field-no-icon" value={profile.niveau_etude || ''} onChange={handleChange}>
+                  <select name="niveauEtude" className="input-field-no-icon" value={profile.niveauEtude || ''} onChange={handleChange}>
                     <option value="">Sélectionnez...</option>
                     {NIVEAU_OPTIONS.map(n => <option key={n} value={n}>{n}</option>)}
                   </select>
@@ -233,23 +244,22 @@ const CandidateProfile = () => {
                   <p style={{ fontSize: '0.875rem' }}>Aucune compétence ajoutée.<br />Commencez par en ajouter une ci-dessus.</p>
                 </div>
               ) : skills.map(skill => (
-                <div key={skill.id_competence} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.875rem 1rem', border: '1.5px solid rgba(76,30,149,0.08)', borderRadius: 'var(--radius-md)', background: 'white', transition: 'border-color 0.2s' }}
+                <div key={skill.competence_id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.875rem 1rem', border: '1.5px solid rgba(76,30,149,0.08)', borderRadius: 'var(--radius-md)', background: 'white', transition: 'border-color 0.2s' }}
                   onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(76,30,149,0.2)'}
                   onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(76,30,149,0.08)'}
                 >
                   <div style={{ flex: 1 }}>
                     <p style={{ fontWeight: 600, fontSize: '0.9rem', margin: '0 0 0.35rem', color: 'var(--texte-fonce)' }}>{skill.nom}</p>
-                    <StarRating level={skill.niveau} onChange={niveau => handleUpdateLevel(skill.id_competence, niveau)} />
+                    <StarRating level={skill.niveau} onChange={niveau => handleUpdateLevel(skill.competence_id, niveau)} />
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <span className="badge badge-primary" style={{ fontSize: '0.7rem' }}>Niv. {skill.niveau}</span>
                     <button
                       type="button"
-                      onClick={() => handleRemoveSkill(skill.id_competence)}
-                      className="btn-danger"
-                      style={{ padding: '0.4rem', borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', border: '1px solid var(--color-danger)', background: 'none', cursor: 'pointer', transition: 'all 0.2s' }}
+                      onClick={() => handleRemoveSkill(skill.competence_id)}
+                      style={{ padding: '0.4rem', borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', border: '1px solid #DC2626', background: 'none', cursor: 'pointer', transition: 'all 0.2s' }}
                     >
-                      <Trash2 size={14} color="var(--color-danger)" />
+                      <Trash2 size={14} color="#DC2626" />
                     </button>
                   </div>
                 </div>
@@ -258,6 +268,7 @@ const CandidateProfile = () => {
           </div>
         </div>
       </form>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 };
